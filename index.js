@@ -1,16 +1,45 @@
 const express = require('express');
-const morgan = require('morgan');
+const mongoose = require('mongoose');
 const cors = require('cors');
+require('dotenv').config();
+
 const app = express();
-const { mongoose } = require('./database');
-
-app.set('port', process.env.PORT || 3000);
-app.use(morgan('dev'));
+app.use(cors());
 app.use(express.json());
-app.use(cors({ origin: 'http://localhost:4200' }));
-app.use(express.static(__dirname + '/public')); // ✅ Para servir el frontend
-app.use('/api/empleados', require('./routes/empleado.routes'));
 
-app.listen(app.get('port'), () => {
-  console.log('Servidor activo en el puerto', app.get('port'));
+const Empleado = require('./models/empleado');
+
+// Rutas
+app.get('/api/empleados', async (req, res) => {
+  const empleados = await Empleado.find();
+  res.json(empleados);
 });
+
+app.post('/api/empleados', async (req, res) => {
+  const nuevo = new Empleado(req.body);
+  await nuevo.save();
+  res.json({ mensaje: 'Empleado guardado' });
+});
+
+app.get('/api/empleados/:id', async (req, res) => {
+  const empleado = await Empleado.findById(req.params.id);
+  res.json(empleado);
+});
+
+app.put('/api/empleados/:id', async (req, res) => {
+  await Empleado.findByIdAndUpdate(req.params.id, req.body);
+  res.json({ mensaje: 'Empleado actualizado' });
+});
+
+app.delete('/api/empleados/:id', async (req, res) => {
+  await Empleado.findByIdAndDelete(req.params.id);
+  res.json({ mensaje: 'Empleado eliminado' });
+});
+
+// Conexión a MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Conectado a MongoDB'))
+  .catch(err => console.error('Error de conexión', err));
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Servidor activo en el puerto ${PORT}`));
